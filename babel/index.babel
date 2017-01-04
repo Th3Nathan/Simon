@@ -1,0 +1,241 @@
+
+class Simon extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      display:"",
+      power:false,
+      power_switch:"power_switch_off",
+      strict:false,
+      strict_light: "strict-off",
+      playing: false,
+      inputSounds: [],
+      outputSounds: [],
+      game: false, 
+      light: [.7, .7, .7, .7]
+    };
+  }
+
+lightup(index){
+  const {light} = this.state;
+  light[index] = 1
+  this.setState({
+    light: light
+  })
+  var that = this;
+  setTimeout(function(){
+    that.setState({
+      light: [.7, .7, .7, .7]
+    })
+  }, 300)
+}  
+  
+playback(soundArr){
+  var that = this;    
+  for (var i = 0; i < soundArr.length; i++){  
+   (function(i){
+     that.setState({
+       playing:true,      
+     }) 
+     setTimeout(function () {
+       that.lightup(soundArr[i])
+     var url = sounds[soundArr[i]];
+     var audioElement = document.createElement('audio');
+     audioElement.setAttribute('src', url);
+     audioElement.play();
+     if ( i === soundArr.length - 1){ 
+         that.setState({
+           playing:false
+          })     
+    }
+   }, 1250 * i );
+  })(i);
+  };    
+}
+  
+startGame(){
+  if (this.state.power === true){
+  const {outputSounds} = this.state
+  if (outputSounds.length > 0)
+    return;
+  outputSounds.push(Math.floor(Math.random() * 4))
+  this.setState({
+      outputSounds: outputSounds,
+      inputSounds: [],
+      game:true,
+      display:1
+      
+  })
+  this.playback(outputSounds)
+  }
+  else return;
+}
+  
+playSound(index) {
+  if (!this.state.power || this.state.playing){
+    return;
+  }
+  this.lightup(index)
+  const {inputSounds, outputSounds, game} = this.state
+  inputSounds.push(index);
+  this.setState({
+    inputSounds:inputSounds,
+  })
+  
+  //If game is being played, check if move is right and handle 
+  if (game && (inputSounds[inputSounds.length - 1] !== outputSounds[inputSounds.length-1])){
+    this.wrong();
+    return;
+  }
+
+  if (String(inputSounds) == String(outputSounds))
+    this.advance();
+
+
+  var audioElement = document.createElement('audio');
+  audioElement.setAttribute('src', sounds[index]);
+  audioElement.play();  
+}
+  
+wrong(){
+  const{outputSounds} = this.state
+  if (!this.state.strict){
+    this.setState({
+      inputSounds: [],
+      playing:true
+    })
+    var snd = new Audio("http://soundbible.com/grab.php?id=1218&type=mp3"); 
+    snd.play();
+    var that = this;
+    setTimeout(function(){
+      that.playback(outputSounds);
+    }, 2250) 
+  }
+  else {
+     this.setState({
+      inputSounds: [],
+      outputSounds: [],
+      display: 0,
+      playing:true
+    })
+    var snd = new Audio("http://soundbible.com/grab.php?id=1218&type=mp3"); 
+    snd.play();
+    var that = this;
+    setTimeout(function(){
+      that.startGame();
+    }, 2250)
+  }
+}  
+  
+advance(){
+  const{outputSounds, display, playing} = this.state
+  var that = this;
+  
+  //This is in case user rapidly clicks the same button after clearning a level, it wont trigger an error 
+  this.setState({
+    playing:true
+  })
+  
+  setTimeout(function(){
+    outputSounds.push(Math.floor(Math.random() * 4))
+    that.setState({
+      outputSounds: outputSounds,
+      inputSounds: [],
+      display: display + 1
+    })
+    that.playback(outputSounds)
+  }, 1250)
+}  
+  
+togglePower(){
+   const {power, display, playing} = this.state
+   if (playing)
+     return;
+  var updateDisplay = (display == "") ? "00" : "";
+     this.setState({
+       power: !power,
+       display: updateDisplay,
+       inputSounds: [],
+       playing: false,
+       outputSounds: [],
+       inputSounds: [],
+       game: false  
+     })
+   var css = (this.state.power_switch === "power_switch_off") ? "power_switch_on" : "power_switch_off";
+   this.setState({power_switch:css});
+   if (power == true){
+      this.setState({
+        strict_light:"strict-off",
+        strict:false
+    })
+  }
+}
+ 
+ toggleStrict(){
+   if (!this.state.power){
+     return;
+   }
+   const {strict} = this.state
+     this.setState({
+       strict: !strict
+     })
+   var css = (this.state.strict_light === "strict-off") ? "strict-on" : "strict-off";
+   this.setState({strict_light:css});
+ }
+  
+  
+  
+ render() {
+    const {power, light } = this.state
+    const opacityRed = {opacity: light[0]}
+    const opacityBlue = {opacity: light[1]}
+    const opacityYellow = {opacity: light[2]}
+    const opacityGreen = {opacity: light[3]}
+return (
+<div className="container">  
+  
+  {/* For checking state values
+    <h1>Power: {String(this.state.power)} Style: {String(this.state.power_switch)} Strict: {String(this.state.strict)} Style: {String(this.state.strict_light)} Input:
+    {String(this.state.inputSounds)} Output: {String(this.state.outputSounds)} Playing: {String(this.state.playing)} Game: {String(this.state.game)}</h1>
+  */}
+ 
+ <div className="simon"> 
+   <span style={opacityRed}  onClick={() => this.playSound(0)} className="red-note note"></span>
+   <span style={opacityBlue} onClick={() => this.playSound(1)} className="blue-note note"></span>
+   <span style={opacityYellow} onClick={() => this.playSound(2)} className="yellow-note note"></span>
+   <span style={opacityGreen} onClick={() => this.playSound(3)} className="green-note note"></span>
+   <div className="console"> 
+      <div className="title"><h1>SIMON</h1></div>
+      <div className="controlRow">
+       <div className="display-box">
+         <div className="display">{this.state.display}</div>
+         <h2 className="label count">COUNT</h2>
+       </div>
+       <div className="start box">
+         <button onClick={() => this.startGame()} className="start-button btn"></button>
+         <h2 className="label">START</h2>
+       </div>
+       <div className="strict box">
+         <button onClick={() => this.toggleStrict()} className="strict-button btn"></button>
+         <h2 className="label">STRICT</h2>
+         <span className={this.state.strict_light}></span>
+       </div>
+      </div>
+   
+     <div className="power-row">
+        <h2 className="label label-pwr">OFF</h2>
+        <div onClick={() => this.togglePower()} className="power_back">
+          <span className={this.state.power_switch}></span>
+        </div>
+        <h2 className="label label-pwr">ON</h2>
+     </div>     
+   </div>
+  </div>
+</div>
+)}
+}
+
+
+ReactDOM.render(<Simon />, document.getElementById('container'))
+
+var sounds = ["https://s3.amazonaws.com/freecodecamp/simonSound1.mp3", "https://s3.amazonaws.com/freecodecamp/simonSound2.mp3", "https://s3.amazonaws.com/freecodecamp/simonSound3.mp3", "https://s3.amazonaws.com/freecodecamp/simonSound4.mp3"]
